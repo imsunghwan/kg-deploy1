@@ -10,3 +10,6 @@ output
 
 # macOS
 .DS_Store
+
+# Cloudflare Wrangler 로컬 캐시
+.wrangler

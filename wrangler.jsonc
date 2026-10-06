@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Kigle 사이트: Worker 코드 없이 Vite 빌드 결과(dist)만 정적 파일로 배포
+  "name": "kg-deploy1",
+  "compatibility_date": "2026-10-06",
+  // 배포 주소: https://kg-deploy1.kg-landing.workers.dev (현재 동작을 명시해 경고 제거)
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "directory": "./dist/",
+    // /about, /me 처럼 파일이 없는 주소는 index.html 로 보내 클라이언트 라우터가 처리
+    "not_found_handling": "single-page-application"
+  }
+}
