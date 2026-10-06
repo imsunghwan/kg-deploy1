@@ -1,0 +1,12 @@
+.env
+node_modules
+dist
+.venv
+tmp
+output
+
+# 개인 업무 문서 (저장소에 올리지 않음)
+업무세분화/
+
+# macOS
+.DS_Store

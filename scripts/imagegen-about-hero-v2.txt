@@ -1,0 +1,6 @@
+Edit input image 1 (a company group photo).
+
+Change only the CEO: the man in the dark blazer standing at the centre. Make him look noticeably younger, in his late thirties to early forties: fuller dark hair with no grey, smoother skin with fewer wrinkles, same warm smile and friendly expression. Keep his dark blazer and black top, his pose, position and hand on the table exactly the same. He remains a fictional person, not a real individual.
+
+Keep everything else unchanged: every other person's face, hairstyle, clothing, pose and position; the table, laptops, cups and plants; the office, the windows, the Seoul skyline and N Seoul Tower; the lighting, colour and framing.
+Constraints: no text, no logos, no watermark, no added or removed people.

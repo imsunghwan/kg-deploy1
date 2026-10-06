@@ -1,0 +1,470 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', 'Noto Sans KR', ui-sans-serif, system-ui, sans-serif;
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html,
+body {
+  background: #000;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-size: 20px;
+}
+
+::selection {
+  background: #fff;
+  color: #000;
+}
+
+/* ---------- Scroll reveal ---------- */
+/* 요소가 뷰포트에 들어오면 useReveal()이 .is-visible 을 붙입니다. */
+[data-reveal] {
+  opacity: 0;
+  transition:
+    opacity 0.9s var(--ease-out-quint),
+    transform 0.9s var(--ease-out-quint),
+    clip-path 1.1s var(--ease-out-quint);
+  transition-delay: var(--reveal-delay, 0s);
+}
+[data-reveal='text'] {
+  transform: translate3d(0, 42px, 0);
+}
+[data-reveal='media'] {
+  transform: translate3d(0, 56px, 0) scale(0.98);
+  clip-path: inset(8% 0);
+}
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+/* 클립은 미디어에만. 텍스트 리빌에 붙이면 박스 밖으로 나간 요소(하트 등)가 잘립니다. */
+[data-reveal='media'].is-visible {
+  clip-path: inset(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+    transition: none;
+  }
+}
+
+/* ---------- Typography ---------- */
+.t-label {
+  font-size: clamp(16px, 1.67vw, 24px);
+  font-weight: 500;
+  line-height: 1.1;
+  text-align: center;
+  margin-bottom: 1em;
+}
+.t-display {
+  font-size: clamp(34px, 5vw, 72px);
+  font-weight: 600;
+  line-height: 1.1;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 0.6em;
+}
+.t-lead {
+  font-size: clamp(22px, 2.78vw, 40px);
+  font-weight: 300;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* ---------- Media ---------- */
+/* components 레이어에 두어야 Tailwind 유틸리티(예: grayscale-0, object-contain)로 덮어쓸 수 있습니다. */
+@layer components {
+  .media {
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(120% 90% at 30% 20%, #2a2a2a 0%, #111 55%, #050505 100%);
+  }
+  .media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1) contrast(1.05);
+  }
+  /* 영상 대신 이미지를 쓰는 곳에 느린 줌으로 움직임을 줍니다. */
+  .media--drift img {
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    from {
+      transform: scale(1.02) translate3d(0, 0, 0);
+    }
+    to {
+      transform: scale(1.12) translate3d(-1.5%, -1%, 0);
+    }
+  }
+}
+
+/* ---------- Hover underline ---------- */
+.hover-underline {
+  position: relative;
+}
+.hover-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.45s var(--ease-out-quint);
+}
+.hover-underline:hover::after,
+.hover-underline.is-active::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* ---------- Tooltip ---------- */
+.tooltip {
+  position: relative;
+}
+.tooltip__content {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  width: max-content;
+  max-width: 260px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fff;
+  color: #000;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(0, 6px, 0);
+  transition:
+    opacity 0.3s var(--ease-out-quint),
+    transform 0.3s var(--ease-out-quint),
+    visibility 0.3s;
+}
+.tooltip:hover .tooltip__content,
+.tooltip:focus-within .tooltip__content {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+/* ---------- Home intro ---------- */
+.intro-up {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0);
+  animation: intro-up 1.1s var(--ease-out-quint) forwards;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes intro-up {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Page transition ---------- */
+.page-enter {
+  animation: page-in 0.7s var(--ease-out-quint) both;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- 코코비 이미지 슬롯 ---------- */
+.char-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.char-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.char-slot--empty {
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  border-radius: 20px;
+  background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.02) 0 10px, transparent 10px 20px);
+}
+
+/* ---------- 벤토 카드 (마우스 스포트라이트) ---------- */
+.bento {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0c0c0c;
+  padding: 28px;
+  transition:
+    border-color 0.4s var(--ease-out-quint),
+    transform 0.6s var(--ease-out-quint);
+}
+.bento::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(420px circle at var(--mx, -999px) var(--my, -999px), rgba(255, 255, 255, 0.08), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.bento:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.bento:hover::before {
+  opacity: 1;
+}
+.bento > * {
+  position: relative;
+}
+
+/* ---------- 마키(흐르는 기술 스택) ---------- */
+.marquee {
+  display: flex;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.marquee__track {
+  display: flex;
+  flex-shrink: 0;
+  gap: 10px;
+  padding-right: 10px;
+  animation: marquee 22s linear infinite;
+}
+.marquee:hover .marquee__track {
+  animation-play-state: paused;
+}
+@keyframes marquee {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* ---------- 터미널 / 상태 표시 ---------- */
+.caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: -0.2em;
+  background: currentColor;
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+.pulse-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3ddc84;
+}
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: pulse 1.8s ease-out infinite;
+}
+@keyframes pulse {
+  to {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee__track,
+  .caret,
+  .pulse-dot::after {
+    animation: none;
+  }
+}
+
+/* ---------- 팀 카드 위 코코비 ---------- */
+.buddy__char {
+  transform: translate3d(0, 22%, 0);
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45));
+  transition: transform 0.7s var(--ease-out-quint);
+}
+.group:hover .buddy__char {
+  transform: translate3d(0, 4%, 0) rotate(-3deg);
+}
+.heart {
+  opacity: 0;
+  transition: opacity 0.5s var(--ease-out-quint);
+  animation: heart-bob 2.6s ease-in-out infinite;
+}
+.group:hover .heart {
+  opacity: 1;
+}
+@keyframes heart-bob {
+  50% {
+    transform: translate3d(0, -18%, 0) rotate(8deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .heart {
+    animation: none;
+  }
+}
+
+/* ---------- 글래스 히어로 ---------- */
+.glass-stage {
+  background: radial-gradient(120% 120% at 50% 0%, #161616 0%, #050505 70%);
+  perspective: 1400px;
+}
+.glass-blob {
+  position: absolute;
+  width: 34%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.55;
+  animation: blob-float 16s ease-in-out infinite alternate;
+}
+.glass-blob--yellow { background: #ffd23f; left: 6%; top: 22%; }
+.glass-blob--pink { background: #ff7eb6; left: 30%; top: -8%; animation-delay: -4s; animation-duration: 19s; }
+.glass-blob--mint { background: #2fe0c4; left: 46%; top: 42%; animation-delay: -8s; animation-duration: 17s; }
+.glass-blob--violet { background: #7b6bff; right: 4%; top: 6%; animation-delay: -12s; animation-duration: 21s; }
+@keyframes blob-float {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(8%, -10%, 0) scale(1.12); }
+  100% { transform: translate3d(-6%, 8%, 0) scale(0.94); }
+}
+
+.glass-panel {
+  border-radius: inherit;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04) 45%, rgba(255, 255, 255, 0.08));
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+}
+/* 마우스를 따라 움직이는 반사광 */
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(520px circle at var(--gx, 30%) var(--gy, 20%), rgba(255, 255, 255, 0.22), transparent 55%);
+  transition: background-position 0.2s;
+}
+/* 주기적으로 지나가는 광택 */
+.glass-panel__sheen {
+  position: absolute;
+  inset: -50% auto -50% -30%;
+  width: 22%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  transform: rotate(18deg);
+  animation: sheen 7s ease-in-out infinite;
+}
+@keyframes sheen {
+  0%, 60% { left: -30%; }
+  100% { left: 120%; }
+}
+.glass-subject {
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.35));
+  /* --s: 스크롤 진행도에 따른 배율 (GlassHero 에서 설정) */
+  transform: scale(var(--s, 0));
+  transform-origin: 50% 70%;
+  will-change: transform;
+}
+
+/* 배너가 카드를 채울 때: 가운데 기준으로 커지고, 위에 은은한 유리 광택 */
+.glass-subject--fill {
+  filter: none;
+  transform-origin: 50% 50%;
+}
+.glass-gloss {
+  border-radius: inherit;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 40%, rgba(255, 255, 255, 0.05));
+  mix-blend-mode: screen;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-blob,
+  .glass-panel__sheen {
+    animation: none;
+  }
+}
+
+/* ---------- 조직도 ---------- */
+.org-node {
+  cursor: pointer;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  transition:
+    border-color 0.4s var(--ease-out-quint),
+    background-color 0.4s var(--ease-out-quint),
+    opacity 0.9s var(--ease-out-quint),
+    transform 0.9s var(--ease-out-quint);
+}
+.org-node:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.07);
+}
+.org-node:hover img {
+  filter: none;
+}
+.org-node--ceo {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.org-line {
+  background: rgba(255, 255, 255, 0.28);
+}
+/* 연결선은 그려지듯 나타남 */
+[data-reveal='line-y'] {
+  opacity: 1;
+  transform: scaleY(0);
+  transform-origin: top;
+}
+[data-reveal='line-x'] {
+  opacity: 1;
+  transform: scaleX(0);
+  transform-origin: center;
+}
+[data-reveal='line-x'].org-line--from-left {
+  transform-origin: left;
+}
+
+/* 조직도에서 이동해 온 카드 강조 */
+.team-card.is-target .media,
+.team-card.is-target .org-node {
+  animation: target-ring 2.2s var(--ease-out-quint);
+}
+.team-card.is-target .media img {
+  filter: none;
+}
+@keyframes target-ring {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  15% { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85); }
+  70% { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}

@@ -1,0 +1,10 @@
+Create one wide, candid group photograph for the top of a company "about us" page.
+
+Input images 1-9 are references for the people: each shows one team at work (development, app design, app planning, app business, animation, new media, global, management support, operations support). Gather all of the people from these references together in a single scene.
+
+Scene: the same bright modern tech company office in Seoul seen in the references, floor-to-ceiling windows with the city skyline and N Seoul Tower in the background, soft afternoon window light.
+Subject: everyone standing and sitting together around a long shared table as one company, relaxed and smiling, a few clapping. Keep each person's face, hairstyle and clothing consistent with their reference image.
+Add one CEO: a friendly Korean executive in their fifties wearing a dark blazer, standing at the centre among the team with a warm smile, clearly part of the group rather than posing alone. The CEO is a fictional person, not a real individual.
+Style: cinematic editorial photography, muted natural colour, shallow depth of field, matching the look of the reference images.
+Composition: wide landscape frame, everyone visible from the waist up, the CEO near the centre, natural layering in two or three rows, generous headroom.
+Constraints: no text, no logos, no trademarks, no watermark, no cartoon or mascot characters, no extra people beyond the team members and the CEO.

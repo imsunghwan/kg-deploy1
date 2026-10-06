@@ -1,0 +1,28 @@
+{
+  "name": "kg-landing",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "images": "set -a && . ./.env && set +a && .venv/bin/python .claude/skills/imagegen/scripts/image_gen.py generate-batch --input scripts/imagegen-jobs.jsonl --out-dir public/images --model \"${OPENAI_IMAGE_MODEL:-gpt-image-2.5-sunburst}\" --quality high --output-format webp --output-compression 82 --concurrency 3 --max-attempts 5"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
+  }
+}

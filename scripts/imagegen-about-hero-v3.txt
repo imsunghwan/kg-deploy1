@@ -1,0 +1,7 @@
+Edit input image 1 (a company group photo) using input image 2 as the identity reference for the CEO.
+
+Change only the CEO: the man in the dark blazer standing at the centre. Replace his face and hair so he clearly looks like the person in input image 2: the same face shape, eyes, nose, smile and skin tone, the same short slightly messy black hair with fringe, and the same rectangular dark-frame glasses. Match the apparent age of the person in input image 2. Keep his warm smile toward the team.
+Keep his dark blazer over a black top, his pose, body position and hand resting on the table exactly as in input image 1. Blend the face naturally into the scene's soft window lighting and colour.
+
+Keep everything else in input image 1 unchanged: every other person's face, hairstyle, clothing, pose and position; the table, laptops, cups and plants; the office, the windows, the Seoul skyline and N Seoul Tower; the framing.
+Constraints: no text, no logos, no watermark, no added or removed people. Do not copy the background or the chair from input image 2.
