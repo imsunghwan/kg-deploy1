@@ -3,7 +3,7 @@
 
 export const BRAND = {
   mark: 'Kigle.',
-  tagline: '우리는 Kigle 입니다!',
+  tagline: '우리는 모두 Kigle 입니다!',
   credits: 'Designed and Developed by Im Sunghwan',
   year: 2026,
 }
