@@ -11,6 +11,17 @@ npm run dev      # http://localhost:5173
 npm run build    # dist/ 생성
 ```
 
+## 배포
+
+GitHub `imsunghwan/kg-deploy1` 저장소의 `main` 에 푸시하면 두 곳에 자동 배포됩니다.
+
+| 플랫폼 | 프로젝트 | 루트 폴더 | 빌드 설정 |
+| --- | --- | --- | --- |
+| Cloudflare Workers | `kg-newwebpage` | `NewWebPage` | 빌드 `npm run build` → 배포 `npx wrangler deploy` (`wrangler.jsonc`) |
+| Vercel | `kg-newwebpage` | `NewWebPage` | `vercel.json` (Vite, `dist`) |
+
+급할 때는 이 폴더에서 `npm run deploy` 로 Cloudflare 에 직접 올릴 수도 있습니다.
+
 ## 장면 구성 (스크롤 = 화면 수)
 
 | 구간 | 장면 | 파일 |
