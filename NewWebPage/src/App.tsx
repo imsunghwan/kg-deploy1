@@ -10,12 +10,12 @@ import { loadImages } from './three/textures'
 import { FLOWERS } from './three/VillageStage'
 import { World } from './three/World'
 
-const BRAND = ['/brand/hello-cocobi-lg@3x.webp', '/brand/ko-main_characters_logo@3x.webp', ...FLOWERS]
+const BRAND = ['/brand/hello-cocobi-lg-3x.webp', '/brand/ko-main_characters_logo-3x.webp', ...FLOWERS]
 /** 원본 사이트처럼 한국어일 때는 '꼬마공룡 코코비', 영어일 때는 'Hello Cocobi' 로고 */
 // 원본 PNG(280px·396px)를 3배로 키우고 경계만 선명하게 보정한 WebP. 원본은 같은 폴더에 보관
 const LOGO = {
-  ko: { src: '/brand/ko-main_characters_logo@3x.webp', alt: '꼬마공룡 코코비' },
-  en: { src: '/brand/hello-cocobi-lg@3x.webp', alt: 'Hello Cocobi' },
+  ko: { src: '/brand/ko-main_characters_logo-3x.webp', alt: '꼬마공룡 코코비' },
+  en: { src: '/brand/hello-cocobi-lg-3x.webp', alt: 'Hello Cocobi' },
 }
 const LINKS = [
   { label: 'YouTube', href: 'https://www.youtube.com/channel/UC2fWLJgQUxRg-5Mv5A0cJMg' },
