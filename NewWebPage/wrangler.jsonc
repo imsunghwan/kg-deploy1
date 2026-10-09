@@ -1,8 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   // COCOBI 인터랙티브 사이트: Worker 코드 없이 Vite 빌드 결과(dist)만 정적 파일로 배포
-  // 기존 Kigle 사이트(kg-deploy1)와 겹치지 않도록 별도 Worker 이름 사용
-  "name": "kg-newwebpage",
+  // 기존 Kigle 사이트가 있던 kg-deploy1 Worker 를 이 사이트로 교체함 (2026-10-09)
+  // 이전 Kigle 버전: 17a6874a-2f45-4f57-a452-0f2f467da3c7 (wrangler rollback 으로 복구 가능)
+  "name": "kg-deploy1",
   "compatibility_date": "2026-10-09",
   "workers_dev": true,
   "preview_urls": true,

@@ -17,10 +17,11 @@ GitHub `imsunghwan/kg-deploy1` 저장소의 `main` 에 푸시하면 두 곳에 �
 
 | 플랫폼 | 프로젝트 | 루트 폴더 | 빌드 설정 |
 | --- | --- | --- | --- |
-| Cloudflare Workers | `kg-newwebpage` | `NewWebPage` | 빌드 `npm run build` → 배포 `npx wrangler deploy` (`wrangler.jsonc`) |
-| Vercel | `kg-newwebpage` | `NewWebPage` | `vercel.json` (Vite, `dist`) |
+| Cloudflare Workers | `kg-deploy1` (https://kg-deploy1.kg-landing.workers.dev) | `NewWebPage` | 빌드 `npm run build` → 배포 `npx wrangler deploy` (`wrangler.jsonc`) |
+| Vercel | (연결 예정) | `NewWebPage` | `vercel.json` (Vite, `dist`) |
 
-급할 때는 이 폴더에서 `npm run deploy` 로 Cloudflare 에 직접 올릴 수도 있습니다.
+이 폴더에서 `npm run deploy` 로 Cloudflare `kg-deploy1` 에 직접 올릴 수 있습니다.
+(저장소 루트의 `npm run deploy:cf` 도 같은 `kg-deploy1` 에 이전 Kigle 사이트를 올리므로 실행하지 마세요.)
 
 ## 장면 구성 (스크롤 = 화면 수)
 
