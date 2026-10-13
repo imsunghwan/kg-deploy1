@@ -140,10 +140,13 @@ export async function admin(req: Request, env: Env, path: string): Promise<Respo
       const url = new URL(req.url)
       const flagged = url.searchParams.get('flagged') === '1'
       const rows = await env.DB.prepare(
-        `SELECT s.*, (SELECT content FROM chat_messages m WHERE m.session = s.session AND m.role = 'user' ORDER BY ts LIMIT 1) AS first
+        `SELECT s.*, (SELECT content FROM chat_messages m WHERE m.session = s.session AND m.role = 'user' ORDER BY ts LIMIT 1) AS first,
+           -- 가장 최근에 분류된 감정 (입력 중 포함) = '지금 감정'
+           (SELECT json_object('top', top, 'prob', prob, 'kind', kind, 'ts', ts) FROM chat_emotions e
+             WHERE e.session = s.session ORDER BY ts DESC LIMIT 1) AS now_emotion
          FROM chat_sessions s ${flagged ? 'WHERE s.flagged = 1' : ''} ORDER BY s.last_at DESC LIMIT 100`,
       ).all()
-      return json({ sessions: rows.results })
+      return json({ sessions: rows.results, now })
     }
     if (method === 'GET' && id) {
       const [session, messages, emotions] = await env.DB.batch([
@@ -151,7 +154,7 @@ export async function admin(req: Request, env: Env, path: string): Promise<Respo
         env.DB.prepare('SELECT * FROM chat_messages WHERE session = ? ORDER BY ts').bind(id),
         env.DB.prepare('SELECT ts, kind, text_len, top, prob, probs FROM chat_emotions WHERE session = ? ORDER BY ts').bind(id),
       ])
-      return json({ session: session.results?.[0] ?? null, messages: messages.results, emotions: emotions.results })
+      return json({ session: session.results?.[0] ?? null, messages: messages.results, emotions: emotions.results, now })
     }
     if (method === 'DELETE' && id) {
       await env.DB.batch([

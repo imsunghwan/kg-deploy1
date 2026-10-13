@@ -380,11 +380,10 @@ async function saveEmotion(env: Env, session: string, kind: 'typing' | 'message'
         .all<{ kind: string; probs: string }>()
     ).results ?? []
   const agg = aggregate(rows)
-  if (agg) {
-    await env.DB.prepare('UPDATE chat_sessions SET emotion = ?, emotion_probs = ? WHERE session = ?')
-      .bind(agg.top, JSON.stringify(agg.probs), session)
-      .run()
-  }
+  // last_at 도 갱신: 관리자 대화 목록에서 '지금 입력 중'인 대화가 맨 위로 오도록
+  await env.DB.prepare('UPDATE chat_sessions SET emotion = COALESCE(?, emotion), emotion_probs = COALESCE(?, emotion_probs), last_at = MAX(last_at, ?) WHERE session = ?')
+    .bind(agg?.top ?? null, agg ? JSON.stringify(agg.probs) : null, Date.now(), session)
+    .run()
 }
 
 /**

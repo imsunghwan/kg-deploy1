@@ -122,6 +122,25 @@
   .alert:hover { outline: 1px solid rgba(255,216,74,0.4); }
   .alert .c { font-size: 14px; margin: 4px 0; }
   .guides .setting input[type=number] { width: 90px; }
+  /* 지금 감정 (대화 기록) */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .legend span { font-size: 12px; background: var(--card); border: 1px solid rgba(255,255,255,0.08); border-radius: 99px; padding: 4px 10px; color: var(--text-2); }
+  .legend span b { font-size: 15px; margin-right: 3px; }
+  .legend span.neg { border-color: rgba(255,120,90,0.35); }
+  .sess { display: grid; grid-template-columns: 46px 1fr; gap: 10px; align-items: center; }
+  .sess .face { text-align: center; font-size: 30px; line-height: 1; }
+  .sess .face small { display: block; font-size: 11px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .sess .body { min-width: 0; }
+  .sess.neg .face small { color: #ff9a7a; }
+  .now { font-size: 12px; margin-top: 4px; color: var(--text-2); }
+  .now .live { color: #5fd38d; font-weight: 600; white-space: nowrap; }
+  .now .live::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: currentColor; margin-right: 5px; vertical-align: 1px; animation: blink 1.2s infinite; }
+  @keyframes blink { 50% { opacity: 0.25; } }
+  .now-card { display: flex; gap: 14px; align-items: center; padding: 12px 16px; border-radius: 12px; background: var(--card-2); border-left: 4px solid #5fd38d; margin-bottom: 12px; }
+  .now-card.neg { border-left-color: #ff7a59; }
+  .now-card .big { font-size: 46px; line-height: 1; }
+  .now-card .what { font-size: 18px; font-weight: 700; color: var(--text); }
+  .now-card .when { font-size: 12px; color: var(--muted); margin-top: 3px; }
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2b2c33; border: 1px solid var(--line); padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
   .toast.show { opacity: 1; }
   .empty { color: var(--muted); font-size: 13px; padding: 10px 0; }
@@ -169,7 +188,9 @@
     <div class="row" style="margin-bottom:10px">
       <select id="chat-filter" style="width:auto"><option value="0">모든 대화</option><option value="1">규칙 위반이 있었던 대화</option></select>
       <button class="btn" id="chat-reload">새로고침</button>
+      <span class="muted" id="chat-live-note">3초마다 자동 갱신 · 방문자가 입력을 멈출 때마다 감정이 바뀌어요</span>
     </div>
+    <div class="legend" id="emo-legend"></div>
     <div class="chats">
       <div class="card list" id="sessions"></div>
       <div class="card">
@@ -269,8 +290,29 @@ const kst = (ms) => new Date(ms + 9 * 3600e3).toISOString().slice(5, 16).replace
 const DEV = { mobile: '모바일', tablet: '태블릿', desktop: 'PC' }
 const VERDICT = { injection: '지침 빼내기 시도', off_topic: '서비스 무관', spam: '의미 없는 입력', abuse: '크레딧 낭비성', repeat: '반복 질문' }
 const EMO_ORDER = ['angry', 'sad', 'anxious', 'confused', 'joy', 'curious', 'neutral']
-let guides = {}
+const EMO_DEFAULT = {
+  angry: { emoji: '😠', label: '분노·짜증' }, sad: { emoji: '😢', label: '슬픔·실망' }, anxious: { emoji: '😟', label: '불안·걱정' },
+  confused: { emoji: '😵', label: '혼란' }, joy: { emoji: '😊', label: '기쁨·만족' }, curious: { emoji: '🤔', label: '호기심' }, neutral: { emoji: '🙂', label: '평온·중립' },
+}
+const NEG = new Set(['angry', 'sad', 'anxious', 'confused'])
+let guides = { ...EMO_DEFAULT }
 const emoLabel = (e) => guides[e] ? `${guides[e].emoji} ${guides[e].label}` : e
+const agoText = (ms) => ms < 10_000 ? '방금' : ms < 60_000 ? `${Math.round(ms / 1000)}초 전` : ms < 3_600_000 ? `${Math.round(ms / 60_000)}분 전` : ms < 86_400_000 ? `${Math.round(ms / 3_600_000)}시간 전` : `${Math.round(ms / 86_400_000)}일 전`
+/** 가장 최근 감정의 상태: 입력 중(20초 안) / 접속 중(2분 안) / 지난 기록 */
+const liveState = (e, now) => {
+  if (!e) return null
+  const ago = now - e.ts
+  return { ago, typing: e.kind === 'typing' && ago < 20_000, active: ago < 120_000 }
+}
+function renderLegend() {
+  const el = $('emo-legend')
+  if (!el) return
+  el.innerHTML = EMO_ORDER.map((e) => {
+    const g = guides[e] ?? EMO_DEFAULT[e]
+    const th = g.threshold != null && g.threshold <= 1 ? ` · ${Math.round(g.threshold * 100)}%↑ 첫마디` : ''
+    return `<span class="${NEG.has(e) ? 'neg' : ''}" title="${esc(g.guide ?? '')}"><b>${g.emoji}</b>${esc(g.label)}${th}</span>`
+  }).join('')
+}
 const emoText = (probsJson, n = 2) => {
   let p = {}
   try { p = typeof probsJson === 'string' ? JSON.parse(probsJson) : probsJson || {} } catch {}
@@ -400,20 +442,65 @@ async function editCat(id) {
 
 /* ---- 대화 기록 ---- */
 let currentSession = null
-async function loadChats() {
-  const { sessions } = await api(`chats?flagged=${$('chat-filter').value}`)
-  $('sessions').innerHTML = sessions.length ? sessions.map((s) => `
-    <div class="sess" data-id="${s.session}" aria-current="${s.session === currentSession}">
+let listHtml = '', threadKey = ''
+async function loadChats(silent = false) {
+  const { sessions, now } = await api(`chats?flagged=${$('chat-filter').value}`)
+  renderLegend()
+  const html = sessions.length ? sessions.map((s) => {
+    let e = null
+    try { e = s.now_emotion ? JSON.parse(s.now_emotion) : null } catch {}
+    const st = liveState(e, now)
+    const g = e ? guides[e.top] ?? EMO_DEFAULT[e.top] : null
+    const state = !st ? '' : st.typing ? '<span class="live">입력 중</span>' : st.active ? '<span class="live">대화 중</span>' : agoText(st.ago)
+    return `
+    <div class="sess ${e && NEG.has(e.top) ? 'neg' : ''}" data-id="${s.session}" data-key="${e?.ts ?? ''}-${s.messages}" aria-current="${s.session === currentSession}">
+      <div class="face" title="${g ? `지금 감정: ${esc(g.label)} ${Math.round(e.prob * 100)}%` : '아직 분류 전'}">${g ? g.emoji : '<span class="muted" style="font-size:20px">·</span>'}<small>${e ? Math.round(e.prob * 100) + '%' : ''}</small></div>
+      <div class="body">
       <div class="q">${s.channel === 'test' ? '<span class="badge test" style="margin:0 6px 0 0">TEST</span>' : ''}${s.flagged ? '<span class="badge bad" style="margin:0 6px 0 0">위반</span>' : ''}<b>${esc(s.name || '이름 없음')}</b> · ${esc(s.first || '(아직 질문 없음)')}</div>
       <div class="meta">${kst(s.started_at)} · ${esc(s.email || '-')} · ${DEV[s.device] ?? s.device} · 질문 ${s.messages}개${s.notified ? ' · ✉️' : ''}</div>
-      ${s.emotion ? `<div class="meta"><span class="emo-chip">${emoText(s.emotion_probs, 1)}</span></div>` : ''}
-    </div>`).join('') : '<div class="empty">아직 대화가 없어요</div>'
-  $('sessions').querySelectorAll('.sess').forEach((el) => el.addEventListener('click', () => openChat(el.dataset.id)))
+      ${g ? `<div class="now">지금 <b>${esc(g.label)}</b> ${Math.round(e.prob * 100)}% · ${e.kind === 'typing' ? '입력하는 문장' : '보낸 메시지'} 기준 · ${state}</div>` : ''}
+      </div>
+    </div>`
+  }).join('') : '<div class="empty">아직 대화가 없어요</div>'
+  // 바뀐 게 있을 때만 다시 그림 (깜빡임·스크롤 튐 방지)
+  if (html !== listHtml) {
+    listHtml = html
+    const top = $('sessions').scrollTop
+    $('sessions').innerHTML = html
+    $('sessions').scrollTop = top
+    $('sessions').querySelectorAll('.sess').forEach((el) => el.addEventListener('click', () => openChat(el.dataset.id)))
+  }
+  // 열어 둔 대화에 새 감정·메시지가 있으면 그 대화도 갱신
+  const cur = currentSession && $('sessions').querySelector(`.sess[data-id="${currentSession}"]`)
+  if (silent && cur && cur.dataset.key !== threadKey) openChat(currentSession, true)
 }
-async function openChat(id) {
+// 대화 기록 탭을 보고 있는 동안 3초마다 갱신
+setInterval(() => {
+  if (!document.hidden && !$('tab-chats').hidden) loadChats(true).catch(() => {})
+}, 3000)
+// 다른 창을 보다 돌아오면 바로 갱신
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !$('tab-chats').hidden) loadChats(true).catch(() => {})
+})
+async function openChat(id, silent = false) {
+  if (!silent) threadKey = ''
   currentSession = id
   document.querySelectorAll('.sess').forEach((el) => el.setAttribute('aria-current', String(el.dataset.id === id)))
-  const { session: ss, messages, emotions } = await api(`chats/${id}`)
+  const th = $('thread')
+  const atBottom = th.scrollHeight - th.scrollTop - th.clientHeight < 40
+  const { session: ss, messages, emotions, now } = await api(`chats/${id}`)
+  if (currentSession !== id) return
+  threadKey = $('sessions').querySelector(`.sess[data-id="${id}"]`)?.dataset.key ?? ''
+  // 지금 감정 (가장 최근 분류)
+  const last = emotions?.[emotions.length - 1]
+  const lg = last ? guides[last.top] ?? EMO_DEFAULT[last.top] : null
+  const lst = liveState(last, now)
+  const nowCard = lg ? `<div class="now-card ${NEG.has(last.top) ? 'neg' : ''}">
+      <div class="big">${lg.emoji}</div>
+      <div><div class="what">${esc(lg.label)} ${Math.round(last.prob * 100)}%</div>
+      <div class="when">${lst.typing ? '<span class="now"><span class="live">지금 입력 중</span></span> · ' : lst.active ? '<span class="now"><span class="live">대화 중</span></span> · ' : ''}${last.kind === 'typing' ? `입력하던 문장(${last.text_len}자)` : '보낸 메시지'} 기준 · ${agoText(lst.ago)} (${kst(last.ts)})
+      ${lg.threshold != null && lg.threshold <= 1 ? `<br/>챗봇 응대: ${last.prob >= lg.threshold ? `“${esc(lg.opener?.ko ?? '')}” 로 시작` : '첫마디 기준 미만 — 말투만 맞춤'}` : ''}</div></div>
+    </div>` : '<div class="now-card"><div class="big">·</div><div><div class="what">아직 감정 분류 전</div><div class="when">방문자가 입력을 시작하면 바로 나타나요</div></div></div>'
   $('thread-title').textContent = `${ss?.name || '이름 없음'}님과의 대화 · ${ss ? kst(ss.started_at) : ''}`
   $('del-chat').hidden = false
   const profile = ss ? `<div class="profile">
@@ -423,13 +510,14 @@ async function openChat(id) {
   // 감정 흐름: 입력 중(작게) → 보낸 메시지(크게)
   const flow = emotions?.length ? `<div class="flow"><span class="muted">감정 흐름</span> ${emotions.map((e) =>
     `<span class="emo-chip" style="${e.kind === 'typing' ? 'opacity:.55;font-size:11px' : ''}" title="${kst(e.ts)} · ${e.kind === 'typing' ? `입력 중 ${e.text_len}자` : '보낸 메시지'} · ${guides[e.top]?.label ?? e.top} ${Math.round(e.prob * 100)}%">${guides[e.top]?.emoji ?? e.top}${e.kind === 'message' ? ` ${Math.round(e.prob * 100)}%` : ''}</span>`).join('<span class="t">›</span>')}</div>` : ''
-  $('thread').innerHTML = profile + flow + messages.map((m) => `
+  $('thread').innerHTML = nowCard + profile + flow + messages.map((m) => `
     <div class="msg ${m.role}">${esc(m.content)}<span class="tag">${m.role === 'user'
       ? [m.emotion ? emoText(m.emotion_probs, 2) : '', m.verdict && m.verdict !== 'ok' ? `⚠️ ${VERDICT[m.verdict] ?? m.verdict}` : ''].filter(Boolean).join(' · ') || '방문자'
       : `${SOURCE[m.source] ?? m.source ?? ''}${m.tokens_in ? ` · 토큰 ${m.tokens_in + m.tokens_out}` : ''}`}</span></div>`).join('')
+  if (silent && atBottom) th.scrollTop = th.scrollHeight
 }
-$('chat-filter').onchange = loadChats
-$('chat-reload').onclick = loadChats
+$('chat-filter').onchange = () => loadChats()
+$('chat-reload').onclick = () => loadChats()
 $('del-chat').onclick = async () => {
   if (!currentSession || !confirm('이 대화 기록을 삭제할까요?')) return
   await api(`chats/${currentSession}`, { method: 'DELETE' }); currentSession = null
@@ -565,7 +653,7 @@ $('reset-settings').onclick = async () => {
 }
 
 loadStatus(); loadFaq()
-api('settings').then((r) => { guides = r.settings.emotionGuides }).catch(() => {})
+api('settings').then((r) => { guides = r.settings.emotionGuides; renderLegend(); listHtml = '' }).catch(() => {})
 showTab(['faq', 'chats', 'emotions', 'blocks', 'settings'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'faq')
 </script>
 </body>
