@@ -5,6 +5,8 @@
  *   POST /api/track        방문 이벤트 수집           (analytics.ts)
  *   GET  /api/stats, /stats 방문 분석 (STATS_PASSWORD)  (analytics.ts, stats.html)
  *   GET  /api/chat/config  챗봇 인사말·추천 질문        (chat.ts)
+ *   POST /api/chat/start   대화 시작: 이름·이메일·동의   (chat.ts)
+ *   POST /api/chat/emotion 입력 중 감정 분석(Jev)        (chat.ts, emotion.ts)
  *   POST /api/chat         챗봇 대화                    (chat.ts)
  *   /api/admin/*, /admin   챗봇 관리자 (ADMIN_PASSWORD) (admin.ts, admin.html)
  */
@@ -12,7 +14,7 @@ import adminPage from './admin.html'
 import statsPage from './stats.html'
 import { admin } from './admin'
 import { stats, track } from './analytics'
-import { chat, chatConfig } from './chat'
+import { chat, chatConfig, chatEmotion, chatStart } from './chat'
 import { cors, htmlPage, json, requirePassword, type Env } from './shared'
 
 export default {
@@ -26,12 +28,14 @@ export default {
       return new Response('Method Not Allowed', { status: 405 })
     }
 
-    if (path === '/api/chat' || path === '/api/chat/config') {
+    if (path === '/api/chat' || path.startsWith('/api/chat/')) {
       if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }), req, 'GET, POST, OPTIONS')
       if (path === '/api/chat/config' && req.method === 'GET') {
         return cors(await chatConfig(env, url.searchParams.get('lang') === 'en' ? 'en' : 'ko'), req, 'GET, POST, OPTIONS')
       }
       if (path === '/api/chat' && req.method === 'POST') return cors(await chat(req, env, ctx), req, 'GET, POST, OPTIONS')
+      if (path === '/api/chat/start' && req.method === 'POST') return cors(await chatStart(req, env), req, 'GET, POST, OPTIONS')
+      if (path === '/api/chat/emotion' && req.method === 'POST') return cors(await chatEmotion(req, env), req, 'GET, POST, OPTIONS')
       return new Response('Method Not Allowed', { status: 405 })
     }
 

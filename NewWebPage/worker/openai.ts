@@ -32,6 +32,8 @@ export async function askModel(
     instructions: string
     history: { role: 'user' | 'assistant'; content: string }[]
     message: string
+    /** 서버가 만든 부가 정보(감정 분석·사용자 이름) — 사용자가 위조할 수 없도록 developer 메시지로 */
+    context?: string
   },
 ): Promise<ModelReply> {
   const res = await fetch('https://api.openai.com/v1/responses', {
@@ -41,7 +43,11 @@ export async function askModel(
       model: opts.model,
       // 고정된 지침·지식을 앞에 둬서 같은 앞부분이 캐시되도록 (입력 비용 절감)
       instructions: opts.instructions,
-      input: [...opts.history, { role: 'user', content: opts.message }],
+      input: [
+        ...opts.history,
+        ...(opts.context ? [{ role: 'developer' as const, content: opts.context }] : []),
+        { role: 'user', content: opts.message },
+      ],
       reasoning: { effort: opts.effort },
       max_output_tokens: opts.maxOutputTokens,
       text: { format: { type: 'json_schema', name: 'chat_reply', strict: true, schema: SCHEMA } },

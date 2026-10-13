@@ -993,6 +993,7 @@ a {
   flex-direction: column;
   background: #fffaf0;
   color: #24201a;
+  color-scheme: light; /* 체크박스 등이 어두운 페이지 테마를 따르지 않도록 */
   border-radius: 22px;
   overflow: hidden;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
@@ -1150,6 +1151,95 @@ a {
   padding: 4px 14px 10px;
   font-size: 11px;
   color: #9a8a66;
+}
+.chat-start {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chat-start .chat-msg {
+  max-width: 100%;
+}
+.chat-start label:not(.chat-consent) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #6b5a36;
+}
+.chat-start input:not([type='checkbox']) {
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e8d7a8;
+  background: #fff;
+  color: #24201a;
+  outline: none;
+}
+.chat-start input:focus {
+  border-color: #f0b400;
+}
+.chat-consent {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 13.5px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+.chat-consent input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  flex: none;
+  accent-color: #3a2410;
+}
+.chat-terms {
+  font-size: 12px;
+  color: #6b5a36;
+  background: #fff;
+  border: 1px solid #f0e2bd;
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+.chat-terms summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.chat-terms dl {
+  margin: 8px 0 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.chat-terms dt {
+  font-weight: 600;
+  color: #3a2410;
+}
+.chat-terms dd {
+  margin: 0;
+  line-height: 1.5;
+}
+.chat-error {
+  margin: 0;
+  font-size: 13px;
+  color: #c0392b;
+}
+.chat-start button[type='submit'] {
+  margin-top: 2px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #3a2410;
+  color: #fff;
+  font-size: 15px;
+}
+.chat-start button:disabled {
+  opacity: 0.5;
 }
 @media (max-width: 760px) {
   .chat-panel {

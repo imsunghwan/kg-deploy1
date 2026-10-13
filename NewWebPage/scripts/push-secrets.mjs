@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 
-const ALLOWED = ['OPENAI_API_KEY', 'ADMIN_PASSWORD', 'STATS_PASSWORD', 'SMTP_USER', 'SMTP_PASS', 'NOTIFY_TO', 'SMTP_HOST', 'SMTP_PORT']
+const ALLOWED = ['OPENAI_API_KEY', 'TYPESAFE_API_KEY', 'ADMIN_PASSWORD', 'STATS_PASSWORD', 'SMTP_USER', 'SMTP_PASS', 'NOTIFY_TO', 'SMTP_HOST', 'SMTP_PORT']
 
 let text
 try {

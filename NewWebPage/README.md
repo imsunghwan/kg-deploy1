@@ -45,16 +45,26 @@ npm run secrets   # 값이 채워진 항목만 Cloudflare kg-deploy1 비밀 설�
 | 항목 | 용도 |
 | --- | --- |
 | `OPENAI_API_KEY` | 챗봇 모델 `gpt-5.6-terra` 호출 (없으면 등록된 질문·답변만으로 응답) |
+| `TYPESAFE_API_KEY` | 감정 분석 TypeSafe Jev (없으면 감정 분석 없이 응답) |
 | `ADMIN_PASSWORD` | 챗봇 관리자 페이지 `/admin` |
 | `SMTP_USER` / `SMTP_PASS` | 대화 시작 알림 메일 — Gmail 주소와 Google 앱 비밀번호 (smtp.gmail.com:465) |
 | `NOTIFY_TO` | 알림 받을 주소 (비우면 `SMTP_USER`) |
 | `STATS_PASSWORD` | 방문 분석 `/stats` (이미 설정됨, 바꿀 때만) |
 
 로컬 시험(`npx wrangler dev`)은 `.dev.vars` 의 값을 씁니다 (`.dev.vars` 도 git 에 안 올라감).
+`.dev.vars` 에 `JEV_MOCK=1` 을 넣으면 Jev 키 없이 낱말로 흉내 내는 가짜 감정 분류로 시험할 수 있어요 (배포에는 넣지 말 것).
 
 ## 챗봇 (코코비 도우미) — 정식·테스트 빌드
 
 - 화면: `src/components/ChatWidget.tsx` (우측 하단 버튼, `/api/chat` 호출)
+- 대화 시작 전: 이름·이메일 + **개인정보 수집·이용 동의(필수 체크)** → `/api/chat/start`
+  - 동의 안내문은 `ChatWidget.tsx` 의 `CONSENT_ITEMS`. 바꾸면 `worker/chat.ts` 의 `CONSENT_VERSION` 도 올릴 것 (대화마다 동의 시각·버전 저장)
+  - 동의 기록이 없는 세션의 질문은 받지 않음
+- 감정 분석 (TypeSafe Jev 로 분류 → OpenAI 로 응대, `worker/emotion.ts`)
+  - 입력하는 동안 잠깐 멈출 때마다(0.7초) 지금까지 쓴 문장을 `/api/chat/emotion` 으로 보내 7가지 감정 확률을 기록
+  - 질문을 보내면 그 문장도 분류해, `[사용자 이름]`·`[감정] 분노·짜증 65%, …`·`[대화 흐름] 평온 → 혼란 → 분노` 를 developer 메시지로 AI 에 함께 전달
+  - 가장 높은 감정이 기준 비율 이상이면 답 첫머리에 정해진 첫마디(예: “기분이 많이 상하셨을 것 같아요.”). 등록된 답을 바로 보낼 때도 같은 첫마디와 이름을 붙임
+  - 감정별 기준 비율·첫마디·말투, 분석 간격·상한은 관리자 '규칙 설정'에서 수정
 - 서버: `worker/chat.ts` — 답하는 순서
   1. 차단된 방문자 → 차단 안내
   2. 너무 긴 질문, 분당·하루·대화당 질문 수 초과 → 제한 안내
@@ -67,9 +77,10 @@ npm run secrets   # 값이 채워진 항목만 Cloudflare kg-deploy1 비밀 설�
      크레딧 낭비성(긴 글·시·노래 작성, N번 반복, 역할극, 끝말잇기, 말만 바꾼 반복, 대량 요청 반복)은 정해진 문구로 거절 + 경고
   - 하루 경고가 기준을 넘으면 정해진 시간 차단. AI 키가 없거나 하루·분당 호출 상한에 닿으면 등록된 답만으로 응답
 - 관리자: https://kg-deploy1.kg-landing.workers.dev/admin (`ADMIN_PASSWORD`, 아이디는 아무거나)
-  - 질문·답변(카테고리별) 작성·수정·삭제, 규칙·문구 설정, 대화 기록, 차단 해제, 연결 상태, 테스트 메일
-- 대화가 시작되면(첫 질문) SMTP 로 알림 메일: 시간, 익명 방문자 번호, 나라·기기·언어, 접속 주소(테스트/정식), 첫 질문과 답
-- 데이터: D1 `cocobi-analytics` 의 `faq_*`, `chat_*`, `settings` 테이블 (`worker/migrations/`)
+  - 질문·답변(카테고리별) 작성·수정·삭제, 규칙·문구 설정, 대화 기록(이름·이메일·동의 시각·메시지별 감정·감정 흐름), 차단 해제, 연결 상태, 테스트 메일
+  - 감정 분석 탭: 문장을 넣으면 바로 Jev 로 분류, 기간별 감정 분포, 부정적 감정 메시지 모아 보기
+- 대화가 시작되면(첫 질문) SMTP 로 알림 메일: 시간, 이름·이메일, 감정, 나라·기기·언어, 접속 주소(테스트/정식), 첫 질문과 답
+- 데이터: D1 `cocobi-analytics` 의 `faq_*`, `chat_*`(감정 기록 `chat_emotions` 포함), `settings` 테이블 (`worker/migrations/`)
 
 ## 방문 분석
 

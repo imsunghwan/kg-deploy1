@@ -3,8 +3,27 @@
  * 질문·답변·카테고리 작성/수정/삭제, 규칙·문구 설정, 대화 기록, 차단 관리, 연결 상태, 테스트 메일
  */
 import { DEFAULT_SETTINGS, getSettings } from './chat'
+import { EMOTIONS, classify, jevReady } from './emotion'
 import { mailConfigured, sendMail } from './mail'
 import { SITES, json, kstDayStart, type Env } from './shared'
+
+/** 감정 응대 기준 형식 확인: 7가지 감정 모두 {label, emoji, threshold, opener{ko,en}, guide} */
+function validGuides(v: unknown) {
+  if (!v || typeof v !== 'object') return false
+  const g = v as Record<string, Record<string, unknown>>
+  return EMOTIONS.every((e) => {
+    const x = g[e]
+    const op = x?.opener as Record<string, unknown> | undefined
+    return (
+      x &&
+      typeof x.label === 'string' && x.label.length <= 20 &&
+      typeof x.emoji === 'string' && x.emoji.length <= 8 &&
+      typeof x.threshold === 'number' && x.threshold >= 0 && x.threshold <= 2 &&
+      typeof x.guide === 'string' && x.guide.length <= 400 &&
+      op && typeof op.ko === 'string' && typeof op.en === 'string' && op.ko.length <= 120 && op.en.length <= 160
+    )
+  })
+}
 
 const str = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max)
 const int = (v: unknown, d = 0) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : d)
@@ -101,7 +120,8 @@ export async function admin(req: Request, env: Env, path: string): Promise<Respo
         const v = body[key]
         // 기본값과 같은 형태의 값만 저장
         let ok = false
-        if (typeof def === 'number') ok = typeof v === 'number' && Number.isFinite(v) && v >= 0
+        if (key === 'emotionGuides') ok = validGuides(v)
+        else if (typeof def === 'number') ok = typeof v === 'number' && Number.isFinite(v) && v >= 0
         else if (typeof def === 'boolean') ok = typeof v === 'boolean'
         else if (typeof def === 'string') ok = typeof v === 'string' && v.length <= 60
         else ok = !!v && typeof v === 'object' && typeof (v as { ko?: unknown }).ko === 'string' && typeof (v as { en?: unknown }).en === 'string'
@@ -126,11 +146,16 @@ export async function admin(req: Request, env: Env, path: string): Promise<Respo
       return json({ sessions: rows.results })
     }
     if (method === 'GET' && id) {
-      const rows = await env.DB.prepare('SELECT * FROM chat_messages WHERE session = ? ORDER BY ts').bind(id).all()
-      return json({ messages: rows.results })
+      const [session, messages, emotions] = await env.DB.batch([
+        env.DB.prepare('SELECT * FROM chat_sessions WHERE session = ?').bind(id),
+        env.DB.prepare('SELECT * FROM chat_messages WHERE session = ? ORDER BY ts').bind(id),
+        env.DB.prepare('SELECT ts, kind, text_len, top, prob, probs FROM chat_emotions WHERE session = ? ORDER BY ts').bind(id),
+      ])
+      return json({ session: session.results?.[0] ?? null, messages: messages.results, emotions: emotions.results })
     }
     if (method === 'DELETE' && id) {
       await env.DB.batch([
+        env.DB.prepare('DELETE FROM chat_emotions WHERE session = ?').bind(id),
         env.DB.prepare('DELETE FROM chat_messages WHERE session = ?').bind(id),
         env.DB.prepare('DELETE FROM chat_sessions WHERE session = ?').bind(id),
       ])
@@ -150,20 +175,53 @@ export async function admin(req: Request, env: Env, path: string): Promise<Respo
     }
   }
 
+  /* ---- 감정 분석 ---- */
+  if (res === 'emotion-test' && method === 'POST') {
+    const text = str(body.text, 300)
+    if (!text) return json({ error: '문장을 입력해 주세요.' }, 400)
+    if (!jevReady(env)) return json({ error: 'TYPESAFE_API_KEY 가 아직 없어요.' }, 400)
+    try {
+      return json(await classify(env, text))
+    } catch (e) {
+      return json({ error: (e as Error).message }, 500)
+    }
+  }
+  if (res === 'emotions' && method === 'GET') {
+    const days = Math.max(1, Math.min(90, int(new URL(req.url).searchParams.get('days'), 7)))
+    const from = now - days * 86400_000
+    const s = await getSettings(env)
+    const [dist, sessions, alerts] = await env.DB.batch([
+      // 보낸 메시지 기준 감정 분포
+      env.DB.prepare("SELECT emotion AS name, COUNT(*) AS n FROM chat_messages WHERE role = 'user' AND emotion IS NOT NULL AND ts >= ? GROUP BY emotion").bind(from),
+      // 대화별 전체 감정
+      env.DB.prepare('SELECT emotion AS name, COUNT(*) AS n FROM chat_sessions WHERE emotion IS NOT NULL AND started_at >= ? GROUP BY emotion').bind(from),
+      // 부정적 감정이 강했던 최근 메시지 (바로 살펴볼 대화)
+      env.DB.prepare(
+        `SELECT m.session, m.ts, m.content, m.emotion, m.emotion_probs, c.name, c.email
+         FROM chat_messages m JOIN chat_sessions c ON c.session = m.session
+         WHERE m.role = 'user' AND m.emotion IN ('angry', 'sad', 'anxious', 'confused') AND m.ts >= ?
+         ORDER BY m.ts DESC LIMIT 30`,
+      ).bind(from),
+    ])
+    return json({ days, guides: s.emotionGuides, messages: dist.results, sessions: sessions.results, alerts: alerts.results })
+  }
+
   /* ---- 연결 상태 ---- */
   if (res === 'status' && method === 'GET') {
     const start = kstDayStart(now)
-    const [model, tokens, sessions, mails] = await env.DB.batch([
+    const [model, tokens, sessions, mails, emotions] = await env.DB.batch([
       env.DB.prepare("SELECT COUNT(*) AS n FROM chat_messages WHERE source = 'llm' AND ts >= ?").bind(start),
       env.DB.prepare('SELECT COALESCE(SUM(tokens_in),0) AS i, COALESCE(SUM(tokens_out),0) AS o FROM chat_messages WHERE ts >= ?').bind(start),
       env.DB.prepare('SELECT COUNT(*) AS n FROM chat_sessions WHERE started_at >= ?').bind(start),
       env.DB.prepare('SELECT COUNT(*) AS n FROM chat_sessions WHERE notified = 1 AND started_at >= ?').bind(start),
+      env.DB.prepare('SELECT COUNT(*) AS n FROM chat_emotions WHERE ts >= ?').bind(start),
     ])
     const one = (r: D1Result<unknown>) => (r.results?.[0] ?? {}) as Record<string, number>
     const s = await getSettings(env)
     return json({
       openai: !!env.OPENAI_API_KEY,
       mail: mailConfigured(env),
+      jev: jevReady(env),
       model: s.model,
       today: {
         modelCalls: one(model).n ?? 0,
@@ -171,6 +229,7 @@ export async function admin(req: Request, env: Env, path: string): Promise<Respo
         tokensOut: one(tokens).o ?? 0,
         sessions: one(sessions).n ?? 0,
         mails: one(mails).n ?? 0,
+        emotions: one(emotions).n ?? 0,
       },
       testUrl: `https://${SITES[0]}/test/`,
     })

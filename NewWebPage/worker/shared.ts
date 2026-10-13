@@ -9,6 +9,10 @@ export interface Env {
   ADMIN_PASSWORD?: string
   /** OpenAI API 키 (없으면 챗봇은 등록된 질문·답변만으로 응답) */
   OPENAI_API_KEY?: string
+  /** TypeSafe API 키 — Jev 감정 분석 (없으면 감정 분석 없이 동작) */
+  TYPESAFE_API_KEY?: string
+  /** 로컬 시험 전용: '1' 이면 키 없이 가짜 감정 분류 (배포 환경에는 넣지 않음) */
+  JEV_MOCK?: string
   /** SMTP 메일 — 대화 시작 알림 (기본 Gmail smtp.gmail.com:465) */
   SMTP_HOST?: string
   SMTP_PORT?: string
