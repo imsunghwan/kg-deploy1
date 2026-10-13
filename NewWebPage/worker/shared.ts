@@ -25,7 +25,12 @@ export interface Env {
 }
 
 /** 이 서비스가 배포된 주소들 (이벤트·대화 요청은 여기서 온 것만 받음) */
-export const SITES = ['kg-deploy1.kg-landing.workers.dev', 'kg-deploy1-git-main-imsunghwan.vercel.app']
+export const SITES = [
+  'kg-deploy1.kg-landing.workers.dev',
+  'kg-deploy1-phi.vercel.app', // Vercel 정식(production) 주소
+  'kg-deploy1-imsunghwan.vercel.app',
+  'kg-deploy1-git-main-imsunghwan.vercel.app', // Vercel main 브랜치 주소
+]
 export const ORIGINS = SITES.map((s) => `https://${s}`)
 
 /**
