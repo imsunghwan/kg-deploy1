@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Lenis from 'lenis'
 import { Choreo } from './choreo'
 import { CharacterModal } from './components/CharacterModal'
+import { FEATURES } from './channel'
 import { Loader } from './components/Loader'
 import { byId, chapters, characters, copy, family, friends, places, siblings, type Lang } from './content'
 import { T, TOTAL, easeInOut, iris, whiteVeil } from './timeline'
@@ -10,6 +11,9 @@ import { setAnalyticsLang, startTimeTracking, track, trackOnce } from './analyti
 import { loadImages } from './three/textures'
 import { FLOWERS } from './three/VillageStage'
 import { World } from './three/World'
+
+// 챗봇은 스위치가 켜진 빌드에서만 따로 내려받음 (정식 빌드 방문자는 챗봇 코드를 받지 않음)
+const ChatWidget = FEATURES.chatbot ? lazy(() => import('./components/ChatWidget').then((m) => ({ default: m.ChatWidget }))) : null
 
 const BRAND = ['/brand/hello-cocobi-lg-3x.webp', '/brand/ko-main_characters_logo-3x.webp', ...FLOWERS]
 /** 원본 사이트처럼 한국어일 때는 '꼬마공룡 코코비', 영어일 때는 'Hello Cocobi' 로고 */
@@ -442,6 +446,12 @@ export default function App() {
 
       {!loaderGone && <Loader progress={progress} done={ready} label={L(copy.loading)} logo={LOGO[lang]} onGone={onLoaderGone} />}
       {modal && <CharacterModal id={modal} lang={lang} onClose={() => setModal(null)} onNav={setModal} />}
+      {/* 챗봇: 기능 스위치(src/channel.ts)가 켜진 빌드에서만 — 지금은 테스트 빌드(/test) */}
+      {ChatWidget && loaderGone && (
+        <Suspense fallback={null}>
+          <ChatWidget lang={lang} />
+        </Suspense>
+      )}
     </>
   )
 }

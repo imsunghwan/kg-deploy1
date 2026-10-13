@@ -1,9 +1,10 @@
 /**
  * 방문 분석 이벤트를 kg-deploy1 Worker(/api/track)로 보냄.
  * - 쿠키·저장소를 쓰지 않음. 세션 id 는 페이지를 열 때마다 새로 만드는 무작위 값.
- * - 개발 중(localhost)이나 브라우저의 '추적 안 함' 설정이 켜져 있으면 보내지 않음.
+ * - 개발 중(localhost)·테스트 빌드(/test)이거나 브라우저의 '추적 안 함' 설정이 켜져 있으면 보내지 않음.
  * - Vercel·Cloudflare 두 주소 모두 같은 곳으로 보내서 한 화면에서 함께 봄.
  */
+import { FEATURES } from './channel'
 import type { Lang } from './content'
 
 const ENDPOINT = 'https://kg-deploy1.kg-landing.workers.dev/api/track'
@@ -11,6 +12,7 @@ const ENDPOINT = 'https://kg-deploy1.kg-landing.workers.dev/api/track'
 type EventType = 'view' | 'chapter' | 'character' | 'constellation' | 'lang' | 'link' | 'time'
 
 const enabled =
+  FEATURES.analytics &&
   import.meta.env.PROD &&
   typeof navigator !== 'undefined' &&
   navigator.doNotTrack !== '1' &&

@@ -7,32 +7,80 @@
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # dist/ 생성
+npm run dev      # http://localhost:5173 (정식 빌드 화면)
+npm run build    # dist/ = 정식 빌드, dist/test/ = 테스트 빌드
 ```
+
+## 빌드 채널: 정식(`/`)과 테스트(`/test/`)
+
+같은 코드에서 두 번 빌드합니다. 새 기능은 먼저 **테스트 빌드에서만 켜고**, 승인되면 정식 빌드에도 켭니다.
+
+| 채널 | 주소 | 빌드 | 비고 |
+| --- | --- | --- | --- |
+| 정식 | `/` | `vite build` → `dist/` | 방문 분석 집계 |
+| 테스트 | `/test/` | `vite build --mode test` → `dist/test/` | 탭 제목 `[TEST]`, 검색 제외(noindex), 분석 집계 안 함 |
+
+- 기능 스위치: `src/channel.ts` 의 `FEATURES`
+- **정식 승격** = 해당 스위치를 `true` 로 바꾼 뒤 배포 (예: 챗봇 → `chatbot: true`)
+- 지금 테스트 빌드에만 있는 기능: 챗봇(코코비 도우미)
 
 ## 배포
 
-GitHub `imsunghwan/kg-deploy1` 저장소의 `main` 에 푸시하면 두 곳에 자동 배포됩니다.
+| 플랫폼 | 주소 | 배포 방법 |
+| --- | --- | --- |
+| Vercel | https://kg-deploy1-git-main-imsunghwan.vercel.app (`/`, `/test/`) | GitHub `main` 에 푸시하면 자동. 루트 `vercel.json` 이 `NewWebPage` 를 빌드 |
+| Cloudflare Workers `kg-deploy1` | https://kg-deploy1.kg-landing.workers.dev (`/`, `/test/`, `/stats`, `/admin`) | 이 폴더에서 `npm run deploy` |
 
-| 플랫폼 | 프로젝트 | 루트 폴더 | 빌드 설정 |
-| --- | --- | --- | --- |
-| Cloudflare Workers | `kg-deploy1` (https://kg-deploy1.kg-landing.workers.dev) | `NewWebPage` | 빌드 `npm run build` → 배포 `npx wrangler deploy` (`wrangler.jsonc`) |
-| Vercel | `kg-deploy1` (https://kg-deploy1-git-main-imsunghwan.vercel.app) | 저장소 루트 | 루트 `vercel.json` 이 `NewWebPage` 를 설치·빌드해 `NewWebPage/dist` 를 배포 |
+챗봇·분석·관리자 API 는 Cloudflare Worker 에만 있고, Vercel 주소의 페이지도 이 Worker 를 부릅니다.
+(저장소 루트의 `npm run deploy:cf` 는 같은 `kg-deploy1` 에 이전 Kigle 사이트를 올리므로 실행하지 마세요.)
 
-이 폴더에서 `npm run deploy` 로 Cloudflare `kg-deploy1` 에 직접 올릴 수 있습니다.
-(저장소 루트의 `npm run deploy:cf` 도 같은 `kg-deploy1` 에 이전 Kigle 사이트를 올리므로 실행하지 마세요.)
+## 비밀 설정 (`.env`)
+
+`.env.example` 을 참고해 같은 폴더의 `.env` 에 값을 채우고(`.env` 는 git 에 안 올라감):
+
+```bash
+npm run secrets   # 값이 채워진 항목만 Cloudflare kg-deploy1 비밀 설정에 올림 (빈 항목은 건너뜀)
+```
+
+| 항목 | 용도 |
+| --- | --- |
+| `OPENAI_API_KEY` | 챗봇 모델 `gpt-5.6-terra` 호출 (없으면 등록된 질문·답변만으로 응답) |
+| `ADMIN_PASSWORD` | 챗봇 관리자 페이지 `/admin` |
+| `SMTP_USER` / `SMTP_PASS` | 대화 시작 알림 메일 — Gmail 주소와 Google 앱 비밀번호 (smtp.gmail.com:465) |
+| `NOTIFY_TO` | 알림 받을 주소 (비우면 `SMTP_USER`) |
+| `STATS_PASSWORD` | 방문 분석 `/stats` (이미 설정됨, 바꿀 때만) |
+
+로컬 시험(`npx wrangler dev`)은 `.dev.vars` 의 값을 씁니다 (`.dev.vars` 도 git 에 안 올라감).
+
+## 챗봇 (코코비 도우미) — 테스트 빌드
+
+- 화면: `src/components/ChatWidget.tsx` (우측 하단 버튼, `/api/chat` 호출)
+- 서버: `worker/chat.ts` — 답하는 순서
+  1. 차단된 방문자 → 차단 안내
+  2. 너무 긴 질문, 분당·하루·대화당 질문 수 초과 → 제한 안내
+  3. 지침 빼내기·탈옥 문구 → 거절 + 경고
+  4. 의미 없는 입력(ㅋㅋㅋ, asdf…) → 안내 + 경고
+  5. 같은 질문 반복 → 반복 안내 + 경고
+  6. 인사·감사 → 정해진 인사
+  7. 등록된 질문과 딱 맞음 → **등록된 답 그대로 (AI 호출 없음)**
+  8. 그 밖 → AI 가 **등록된 질문·답변만 근거로** 판단·답변. 서비스 무관 / 지침 빼내기 /
+     크레딧 낭비성(긴 글·시·노래 작성, N번 반복, 역할극, 끝말잇기, 말만 바꾼 반복, 대량 요청 반복)은 정해진 문구로 거절 + 경고
+  - 하루 경고가 기준을 넘으면 정해진 시간 차단. AI 키가 없거나 하루·분당 호출 상한에 닿으면 등록된 답만으로 응답
+- 관리자: https://kg-deploy1.kg-landing.workers.dev/admin (`ADMIN_PASSWORD`, 아이디는 아무거나)
+  - 질문·답변(카테고리별) 작성·수정·삭제, 규칙·문구 설정, 대화 기록, 차단 해제, 연결 상태, 테스트 메일
+- 대화가 시작되면(첫 질문) SMTP 로 알림 메일: 시간, 익명 방문자 번호, 나라·기기·언어, 접속 주소(테스트/정식), 첫 질문과 답
+- 데이터: D1 `cocobi-analytics` 의 `faq_*`, `chat_*`, `settings` 테이블 (`worker/migrations/`)
 
 ## 방문 분석
 
 - 분석 페이지: https://kg-deploy1.kg-landing.workers.dev/stats (비밀번호 필요, 아이디는 아무거나)
 - 사이트(Vercel·Cloudflare 두 주소 모두)가 `src/analytics.ts` 로 이벤트를 보내면
-  `worker/index.ts` 의 `/api/track` 이 Cloudflare D1(`cocobi-analytics`)에 저장합니다.
+  `worker/analytics.ts` 의 `/api/track` 이 Cloudflare D1(`cocobi-analytics`)에 저장합니다.
 - 쿠키를 쓰지 않고, 방문자는 날마다 바뀌는 소금값 해시로만 구분합니다(이틀 뒤 소금값 삭제).
   개발 중(localhost)과 브라우저 '추적 안 함' 설정이면 보내지 않습니다.
 - 비밀번호 설정·변경: 이 폴더에서 `npx wrangler secret put STATS_PASSWORD`
 - 테이블 구조: `worker/migrations/` (변경 시 `npx wrangler d1 migrations apply cocobi-analytics --remote`)
-- 로컬 시험: `.dev.vars` 에 `STATS_PASSWORD=...` 를 두고 `npx wrangler dev` (커밋 안 됨)
+- 테스트 빌드(`/test/`) 방문은 집계하지 않습니다.
 
 ## 장면 구성 (스크롤 = 화면 수)
 

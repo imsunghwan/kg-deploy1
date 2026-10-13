@@ -7,13 +7,14 @@
   "compatibility_date": "2026-10-09",
   "workers_dev": true,
   "preview_urls": true,
-  // 방문 분석: /api/track(수집), /api/stats·/stats(비밀번호 보호 분석 페이지)만 Worker 가 처리
+  // Worker 가 처리하는 경로: /api/*(분석 수집·챗봇·관리자 API), /stats(분석), /admin(챗봇 관리자). 나머지는 정적 파일
+  // 정적 파일: dist/ = 정식 빌드(/), dist/test/ = 테스트 빌드(/test/)
   "main": "worker/index.ts",
   "assets": {
     "directory": "./dist/",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/stats", "/stats/*"]
+    "run_worker_first": ["/api/*", "/stats", "/stats/*", "/admin", "/admin/*"]
   },
   "d1_databases": [
     {

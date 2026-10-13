@@ -4,5 +4,18 @@
   "installCommand": "npm ci --prefix NewWebPage",
   "buildCommand": "npm run build --prefix NewWebPage",
   "outputDirectory": "NewWebPage/dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/test",
+      "destination": "/test/index.html"
+    },
+    {
+      "source": "/test/(.*)",
+      "destination": "/test/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }

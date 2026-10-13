@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && tsc --noEmit -p worker && vite build",
+    "build": "tsc --noEmit && tsc --noEmit -p worker && vite build && vite build --mode test",
     "preview": "vite preview",
-    "deploy": "SITE_URL=https://kg-deploy1.kg-landing.workers.dev npm run build && wrangler deploy"
+    "deploy": "SITE_URL=https://kg-deploy1.kg-landing.workers.dev npm run build && wrangler deploy",
+    "secrets": "node scripts/push-secrets.mjs"
   },
   "dependencies": {
     "lenis": "^1.3.0",
