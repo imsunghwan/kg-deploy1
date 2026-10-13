@@ -148,12 +148,16 @@ export function similarity(a: string, b: string) {
 }
 
 const CUE = /(누구|누군|소개|어떤|어떻|뭐|무엇|몇|알려|궁금|특징|성격|좋아|who|what|tell|about)/i
-const PARTICLES = /^(은|는|이|가|을|를|의|도|에|랑|이랑|한테|에게|요|야|아|이야|이에요|예요|가요|는요|이는|이가)?$/
-/** 키워드가 질문에 들어 있는지. 한 글자 이름(밥·벨·루·톰·션)은 '밥은', '벨이'처럼 낱말 단위로만 */
+const PARTICLES = /^(들)?(은|는|이|가|을|를|의|도|에|에서|랑|이랑|하고|한테|에게|요|야|아|이야|이에요|예요|가요|는요|이는|이가|님|씨|만|도요|로|으로)?$/
+/**
+ * 키워드가 질문에 들어 있는지.
+ * 두 글자 이하(코코·러비·밥·벨…)는 '코코는', '벨이'처럼 낱말 단위로만 — "코코비 굿즈"의 '코코' 같은 오인 방지
+ * 세 글자 이상은 붙어 있어도 인정
+ */
 function hasKeyword(message: string, kw: string) {
   const k = norm(kw)
   if (!k) return false
-  if (k.length >= 2) return norm(message).includes(k)
+  if (k.length >= 3) return norm(message).includes(k)
   return message
     .toLowerCase()
     .split(/[\s\p{P}\p{S}]+/u)
