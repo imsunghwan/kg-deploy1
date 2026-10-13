@@ -23,6 +23,17 @@ GitHub `imsunghwan/kg-deploy1` 저장소의 `main` 에 푸시하면 두 곳에 �
 이 폴더에서 `npm run deploy` 로 Cloudflare `kg-deploy1` 에 직접 올릴 수 있습니다.
 (저장소 루트의 `npm run deploy:cf` 도 같은 `kg-deploy1` 에 이전 Kigle 사이트를 올리므로 실행하지 마세요.)
 
+## 방문 분석
+
+- 분석 페이지: https://kg-deploy1.kg-landing.workers.dev/stats (비밀번호 필요, 아이디는 아무거나)
+- 사이트(Vercel·Cloudflare 두 주소 모두)가 `src/analytics.ts` 로 이벤트를 보내면
+  `worker/index.ts` 의 `/api/track` 이 Cloudflare D1(`cocobi-analytics`)에 저장합니다.
+- 쿠키를 쓰지 않고, 방문자는 날마다 바뀌는 소금값 해시로만 구분합니다(이틀 뒤 소금값 삭제).
+  개발 중(localhost)과 브라우저 '추적 안 함' 설정이면 보내지 않습니다.
+- 비밀번호 설정·변경: 이 폴더에서 `npx wrangler secret put STATS_PASSWORD`
+- 테이블 구조: `worker/migrations/` (변경 시 `npx wrangler d1 migrations apply cocobi-analytics --remote`)
+- 로컬 시험: `.dev.vars` 에 `STATS_PASSWORD=...` 를 두고 `npx wrangler dev` (커밋 안 됨)
+
 ## 장면 구성 (스크롤 = 화면 수)
 
 | 구간 | 장면 | 파일 |

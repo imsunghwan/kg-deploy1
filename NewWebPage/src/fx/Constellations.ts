@@ -56,7 +56,8 @@ export class Constellations {
     this.dirty = true
   }
 
-  spawn(x: number, y: number, lang: Lang) {
+  /** 별자리를 띄우고 그 캐릭터 id 를 돌려줌 */
+  spawn(x: number, y: number, lang: Lang): string {
     // 바로 전과 다른 캐릭터를 무작위로
     const pool = characters.filter((c) => c.id !== this.last)
     const ch = pool[Math.floor(Math.random() * pool.length)]
@@ -74,6 +75,7 @@ export class Constellations {
       label: lang === 'ko' ? `${ch.name.ko}자리` : `${ch.name.en.toUpperCase()} CONSTELLATION`,
     })
     if (this.items.length > 6) this.items.shift()
+    return ch.id
   }
 
   update(now: number) {

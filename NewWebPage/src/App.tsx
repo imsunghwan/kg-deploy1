@@ -6,6 +6,7 @@ import { Loader } from './components/Loader'
 import { byId, chapters, characters, copy, family, friends, places, siblings, type Lang } from './content'
 import { T, TOTAL, easeInOut, iris, whiteVeil } from './timeline'
 import { Constellations } from './fx/Constellations'
+import { setAnalyticsLang, startTimeTracking, track, trackOnce } from './analytics'
 import { loadImages } from './three/textures'
 import { FLOWERS } from './three/VillageStage'
 import { World } from './three/World'
@@ -58,6 +59,19 @@ export default function App() {
   const labelEls = useRef(new Map<string, HTMLElement>())
 
   langRef.current = lang
+  // 방문 분석: 페이지 열림 + 머문 시간
+  useEffect(() => {
+    setAnalyticsLang(langRef.current)
+    track('view')
+    startTimeTracking()
+  }, [])
+  const firstLang = useRef(true)
+  useEffect(() => {
+    setAnalyticsLang(lang)
+    if (firstLang.current) firstLang.current = false
+    else track('lang', lang)
+  }, [lang])
+
   useEffect(() => {
     document.documentElement.lang = lang
     try {
@@ -159,6 +173,8 @@ export default function App() {
         }
       }
 
+      // 방문 분석: 각 장에 도착하면 한 번씩 기록
+      for (const c of chapters) if (s >= c.at - 0.3) trackOnce('chapter', c.id)
       if (railRef.current) railRef.current.style.transform = `scaleY(${(s / TOTAL).toFixed(4)})`
       if (chapterRef.current) {
         let idx = 0
@@ -207,7 +223,7 @@ export default function App() {
       if (id) return setModal(id)
       // 엔딩 우주 배경을 누르면 그 자리에 캐릭터 별자리가 떠오름
       const s = (lenisRef.current?.scroll ?? 0) / innerHeight
-      if (s >= T.end[0] + 0.15) skyFx.current?.spawn(e.clientX, e.clientY, langRef.current)
+      if (s >= T.end[0] + 0.15 && skyFx.current) track('constellation', skyFx.current.spawn(e.clientX, e.clientY, langRef.current))
     }
     addEventListener('pointermove', onMove)
     canvas.addEventListener('click', onClick)
@@ -216,6 +232,11 @@ export default function App() {
       canvas.removeEventListener('click', onClick)
     }
   }, [])
+
+  // 방문 분석: 캐릭터 상세 창을 볼 때마다 (이전/다음 넘김 포함)
+  useEffect(() => {
+    if (modal) track('character', modal)
+  }, [modal])
 
   // 모달이 열려 있는 동안 스크롤 정지
   useEffect(() => {
@@ -401,12 +422,12 @@ export default function App() {
             <p className="end-cta">{L(copy.endCta)}</p>
             <nav className="end-links mono">
               {LINKS.map((l) => (
-                <a key={l.label} href={l.href} target="_blank" rel="noreferrer">
+                <a key={l.label} href={l.href} target="_blank" rel="noreferrer" onClick={() => track('link', l.label)}>
                   {l.label} ↗
                 </a>
               ))}
             </nav>
-            <a className="end-mail mono" href="mailto:biz@kiglestudio.com">
+            <a className="end-mail mono" href="mailto:biz@kiglestudio.com" onClick={() => track('link', 'Email')}>
               [ BIZ@KIGLESTUDIO.COM ]
             </a>
             <p className="end-copy mono">© Kigle. All rights reserved.</p>

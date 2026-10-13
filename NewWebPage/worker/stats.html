@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>코코비 방문 분석</title>
+<link rel="icon" href="/characters/lobi.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400..700&family=Jua&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0e0f13;
+    --card: #17181d;
+    --line: rgba(255, 255, 255, 0.08);
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8a8a85;
+    --series-1: #3987e5; /* 방문자 */
+    --series-2: #d95926; /* 방문 수 */
+    --track: rgba(255, 255, 255, 0.06);
+    --accent: #ffd84a;
+    --font: 'Fredoka', 'Jua', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-synthesis-weight: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { height: 46px; }
+  h1 { margin: 0; font-size: 26px; font-weight: 600; }
+  .sub { margin: 2px 0 0; color: var(--text-muted); font-size: 13px; }
+  .controls { display: flex; gap: 6px; align-items: center; }
+  .seg { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .seg button, .ghost {
+    font: inherit; font-size: 13px; color: var(--text-secondary);
+    background: none; border: 0; padding: 7px 12px; border-radius: 7px; cursor: pointer;
+  }
+  .seg button[aria-pressed='true'] { background: rgba(255, 255, 255, 0.1); color: var(--text-primary); }
+  .ghost { border: 1px solid var(--line); background: var(--card); border-radius: 10px; }
+  .ghost:hover, .seg button:hover { color: var(--text-primary); }
+
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(12, 1fr); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px 16px; min-width: 0; }
+  .card h2 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+  .card .hint { margin: 0 0 14px; font-size: 12px; color: var(--text-muted); }
+  .span-12 { grid-column: span 12; } .span-8 { grid-column: span 8; } .span-6 { grid-column: span 6; }
+  .span-4 { grid-column: span 4; } .span-3 { grid-column: span 3; }
+  @media (max-width: 900px) { .span-8, .span-6, .span-4 { grid-column: span 12; } .span-3 { grid-column: span 6; } }
+
+  .kpi .label { font-size: 13px; color: var(--text-secondary); }
+  .kpi .value { margin-top: 6px; font-size: 34px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+  .kpi .foot { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
+
+  /* 일별 추이 */
+  .chart-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--text-secondary); }
+  .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; height: 260px; overflow: visible; }
+  .axis text { fill: var(--text-muted); font-size: 11px; font-family: var(--font); }
+  .axis line { stroke: var(--line); }
+  .tip {
+    position: absolute; pointer-events: none; z-index: 2; min-width: 130px;
+    background: #23242b; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px;
+    padding: 9px 11px; font-size: 12px; color: var(--text-secondary);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); opacity: 0; transition: opacity 0.12s;
+  }
+  .tip b { color: var(--text-primary); font-weight: 600; }
+  .tip .row { display: flex; justify-content: space-between; gap: 14px; margin-top: 4px; }
+  .tip .row span:first-child::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--dot); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--text-muted); font-weight: 500; }
+  .table-wrap { max-height: 260px; overflow: auto; }
+
+  /* 막대 목록 */
+  .bars { display: flex; flex-direction: column; gap: 9px; }
+  .bar { display: grid; grid-template-columns: minmax(70px, 34%) 1fr auto; align-items: center; gap: 10px; font-size: 13px; position: relative; }
+  .bar .name { color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar .track, .char .track, .bar .fill, .char .fill { display: block; }
+  .fill[style*='width:0%'] { min-width: 0 !important; }
+  .bar .track { height: 12px; background: var(--track); border-radius: 4px; overflow: hidden; }
+  .bar .fill { height: 100%; background: var(--series-1); border-radius: 0 4px 4px 0; min-width: 2px; }
+  .bar .num { font-variant-numeric: tabular-nums; color: var(--text-primary); min-width: 64px; text-align: right; }
+  .bar .num small { color: var(--text-muted); margin-left: 4px; }
+  .bar:hover .name { color: var(--text-primary); }
+
+  /* 장별 도달률 */
+  .funnel .bar { grid-template-columns: 74px 1fr auto; }
+  .funnel .drop { font-size: 11px; color: var(--text-muted); grid-column: 2 / 4; margin-top: -4px; }
+
+  /* 캐릭터 */
+  .chars { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px 22px; }
+  .char { display: grid; grid-template-columns: 34px 64px 1fr auto; align-items: center; gap: 10px; font-size: 13px; }
+  .char img { width: 34px; height: 34px; border-radius: 9px; object-fit: cover; border: 2px solid #fff; }
+  .char .name { color: var(--text-secondary); }
+  .char .num { font-variant-numeric: tabular-nums; min-width: 70px; text-align: right; }
+  .char .num em { font-style: normal; color: var(--accent); margin-left: 8px; }
+  .char .track { height: 10px; background: var(--track); border-radius: 4px; overflow: hidden; }
+  .char .fill { height: 100%; background: var(--series-1); border-radius: 0 4px 4px 0; min-width: 2px; }
+
+  .empty { color: var(--text-muted); font-size: 13px; padding: 8px 0; }
+  .status { margin: 40px 0; text-align: center; color: var(--text-secondary); }
+  .note { margin-top: 18px; font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <img src="/brand/ko-main_characters_logo-3x.webp" alt="꼬마공룡 코코비" />
+      <div>
+        <h1>방문 분석</h1>
+        <p class="sub" id="range">불러오는 중…</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="기간">
+        <button data-days="7">7일</button>
+        <button data-days="30">30일</button>
+        <button data-days="90">90일</button>
+      </div>
+      <button class="ghost" id="reload">새로고침</button>
+    </div>
+  </header>
+
+  <div id="status" class="status">불러오는 중…</div>
+  <main id="main" class="grid" hidden>
+    <section class="card kpi span-3"><div class="label">방문자</div><div class="value" id="k-visitors">-</div><div class="foot">날마다 센 고유 방문자의 합</div></section>
+    <section class="card kpi span-3"><div class="label">방문 수</div><div class="value" id="k-sessions">-</div><div class="foot">페이지를 연 횟수</div></section>
+    <section class="card kpi span-3"><div class="label">평균 머문 시간</div><div class="value" id="k-time">-</div><div class="foot" id="k-time-foot">-</div></section>
+    <section class="card kpi span-3"><div class="label">엔딩까지 본 비율</div><div class="value" id="k-end">-</div><div class="foot">끝까지 스크롤한 방문 비율</div></section>
+
+    <section class="card span-12">
+      <div class="chart-head">
+        <div><h2>일별 추이</h2><p class="hint">점 위에 마우스를 올리면 그날 숫자가 보여요</p></div>
+        <div style="display:flex;gap:14px;align-items:center">
+          <div class="legend"><span><i style="background:var(--series-1)"></i>방문자</span><span><i style="background:var(--series-2)"></i>방문 수</span></div>
+          <button class="ghost" id="toggle-table">표로 보기</button>
+        </div>
+      </div>
+      <div class="chart" id="daily"></div>
+      <div class="table-wrap" id="daily-table" hidden></div>
+    </section>
+
+    <section class="card span-6 funnel"><h2>장별 도달률</h2><p class="hint">방문 중 각 장까지 스크롤한 비율</p><div class="bars" id="funnel"></div></section>
+    <section class="card span-6"><h2>유입 경로</h2><p class="hint">어디서 링크를 눌러 들어왔는지</p><div class="bars" id="referrers"></div></section>
+
+    <section class="card span-12"><h2>캐릭터 인기</h2><p class="hint">막대 = 상세 창을 본 횟수 · <span style="color:var(--accent)">✦</span> = 엔딩에서 별자리로 나온 횟수</p><div class="chars" id="characters"></div></section>
+
+    <section class="card span-4"><h2>기기</h2><p class="hint">방문 기준</p><div class="bars" id="devices"></div></section>
+    <section class="card span-4"><h2>나라</h2><p class="hint">방문 기준 상위 10개</p><div class="bars" id="countries"></div></section>
+    <section class="card span-4"><h2>언어</h2><p class="hint">방문을 마칠 때 보고 있던 언어</p><div class="bars" id="langs"></div></section>
+    <section class="card span-6"><h2>접속 주소</h2><p class="hint">어느 배포 주소로 들어왔는지</p><div class="bars" id="hosts"></div></section>
+    <section class="card span-6"><h2>링크 클릭</h2><p class="hint">엔딩의 유튜브·인스타그램 등 클릭 수</p><div class="bars" id="links"></div></section>
+  </main>
+  <p class="note">쿠키를 쓰지 않고, 방문자는 날마다 바뀌는 무작위 값으로만 구분해서 개인을 알아볼 수 없습니다. 날짜는 한국 시간 기준입니다.</p>
+</div>
+
+<script>
+const CHAPTERS = [['hero', '시작'], ['hello', '코코비'], ['family', '가족'], ['island', '공룡섬'], ['friends', '친구들'], ['end', '엔딩']]
+const NAMES = { coco: '코코', lobi: '러비', donna: '도나', bob: '밥', lala: '라라', george: '조지', martha: '마샤', sean: '션', jackjack: '잭잭', bell: '벨', rou: '루', tom: '톰', nico: '니코', jackson: '잭슨', elon: '엘론', pinky: '핑키' }
+const DEVICES = { mobile: '모바일', tablet: '태블릿', desktop: 'PC' }
+const HOSTS = { 'kg-deploy1.kg-landing.workers.dev': 'Cloudflare', 'kg-deploy1-git-main-imsunghwan.vercel.app': 'Vercel' }
+const LANGS = { ko: '한국어', en: 'English' }
+const region = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['ko'], { type: 'region' }) : null
+const $ = (id) => document.getElementById(id)
+const fmt = (n) => (n ?? 0).toLocaleString('ko-KR')
+const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0)
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+
+let days = 30
+try { days = Number(localStorage.getItem('stats-days')) || 30 } catch {}
+
+function flag(code) {
+  if (!/^[A-Z]{2}$/.test(code || '')) return ''
+  return String.fromCodePoint(...[...code].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
+}
+
+/** 막대 목록 (단일 색: 크기 비교용) */
+function bars(el, items, total, label = (x) => x) {
+  if (!items.length) { el.innerHTML = '<div class="empty">아직 데이터가 없어요</div>'; return }
+  const max = Math.max(...items.map((x) => x.n), 1)
+  el.innerHTML = items.map((x) => `
+    <div class="bar" title="${esc(label(x.name))}: ${fmt(x.n)} (${pct(x.n, total)}%)">
+      <span class="name">${esc(label(x.name))}</span>
+      <span class="track"><span class="fill" style="width:${(x.n / max) * 100}%"></span></span>
+      <span class="num">${fmt(x.n)}<small>${pct(x.n, total)}%</small></span>
+    </div>`).join('')
+}
+
+/** 일별 추이: 두 선(방문자·방문 수), 마우스를 올리면 세로 안내선 + 툴팁 */
+function dailyChart(el, data) {
+  const W = el.clientWidth || 800, H = 260, P = { l: 36, r: 16, t: 14, b: 26 }
+  const iw = W - P.l - P.r, ih = H - P.t - P.b
+  const max = Math.max(4, ...data.map((d) => Math.max(d.visitors, d.views)))
+  const nice = Math.ceil(max / 4) * 4
+  const x = (i) => P.l + (data.length < 2 ? iw / 2 : (i / (data.length - 1)) * iw)
+  const y = (v) => P.t + ih - (v / nice) * ih
+  const path = (k) => data.map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(d[k]).toFixed(1)}`).join('')
+  const ticks = [0, 1, 2, 3, 4].map((t) => (nice / 4) * t)
+  const step = Math.max(1, Math.ceil(data.length / 8))
+  el.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="일별 방문자와 방문 수">
+      <g class="axis">
+        ${ticks.map((t) => `<line x1="${P.l}" x2="${W - P.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${P.l - 8}" y="${y(t) + 4}" text-anchor="end">${fmt(t)}</text>`).join('')}
+        ${data.map((d, i) => {
+          // 마지막 날짜는 바로 앞 눈금과 너무 가까우면 앞 눈금 대신 표시
+          const last = i === data.length - 1
+          const tick = i % step === 0 && !(data.length - 1 - i > 0 && data.length - 1 - i < step / 2)
+          return tick || last ? `<text x="${x(i)}" y="${H - 6}" text-anchor="${last && data.length > 1 ? 'end' : 'middle'}">${d.day.slice(5).replace('-', '/')}</text>` : ''
+        }).join('')}
+      </g>
+      <path d="${path('views')}" fill="none" stroke="var(--series-2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="${path('visitors')}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <line id="cross" y1="${P.t}" y2="${P.t + ih}" stroke="rgba(255,255,255,0.35)" stroke-dasharray="3 3" opacity="0"/>
+      <circle id="dot-v" r="5" fill="var(--series-1)" stroke="var(--card)" stroke-width="2" opacity="0"/>
+      <circle id="dot-w" r="5" fill="var(--series-2)" stroke="var(--card)" stroke-width="2" opacity="0"/>
+      <rect x="${P.l}" y="${P.t}" width="${iw}" height="${ih}" fill="transparent" id="hit"/>
+    </svg>
+    <div class="tip" id="tip"></div>`
+  const svg = el.querySelector('svg'), tip = el.querySelector('#tip')
+  const cross = el.querySelector('#cross'), dv = el.querySelector('#dot-v'), dw = el.querySelector('#dot-w')
+  const show = (clientX) => {
+    const r = svg.getBoundingClientRect()
+    const sx = ((clientX - r.left) / r.width) * W
+    const i = Math.max(0, Math.min(data.length - 1, Math.round(((sx - P.l) / iw) * (data.length - 1))))
+    const d = data[i]
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('opacity', 1)
+    dv.setAttribute('cx', x(i)); dv.setAttribute('cy', y(d.visitors)); dv.setAttribute('opacity', 1)
+    dw.setAttribute('cx', x(i)); dw.setAttribute('cy', y(d.views)); dw.setAttribute('opacity', 1)
+    tip.innerHTML = `<b>${d.day}</b>
+      <div class="row" style="--dot:var(--series-1)"><span>방문자</span><b>${fmt(d.visitors)}</b></div>
+      <div class="row" style="--dot:var(--series-2)"><span>방문 수</span><b>${fmt(d.views)}</b></div>`
+    const px = (x(i) / W) * r.width
+    tip.style.left = `${Math.min(px + 14, r.width - 150)}px`
+    tip.style.top = `${(y(Math.max(d.visitors, d.views)) / H) * r.height - 10}px`
+    tip.style.opacity = 1
+  }
+  const hide = () => { tip.style.opacity = 0; [cross, dv, dw].forEach((n) => n.setAttribute('opacity', 0)) }
+  svg.addEventListener('pointermove', (e) => show(e.clientX))
+  svg.addEventListener('pointerleave', hide)
+
+  $('daily-table').innerHTML = `<table><thead><tr><th>날짜</th><th>방문자</th><th>방문 수</th></tr></thead><tbody>${
+    [...data].reverse().map((d) => `<tr><td>${d.day}</td><td>${fmt(d.visitors)}</td><td>${fmt(d.views)}</td></tr>`).join('')
+  }</tbody></table>`
+}
+
+function fillDays(from, to, rows) {
+  const map = Object.fromEntries(rows.map((r) => [r.day, r]))
+  const out = []
+  for (let t = Date.parse(from + 'T00:00:00Z'); t <= Date.parse(to + 'T00:00:00Z'); t += 86400000) {
+    const day = new Date(t).toISOString().slice(0, 10)
+    out.push(map[day] ?? { day, visitors: 0, views: 0 })
+  }
+  return out
+}
+
+function mmss(sec) {
+  if (sec == null) return '-'
+  const s = Math.round(sec)
+  return s >= 60 ? `${Math.floor(s / 60)}분 ${s % 60}초` : `${s}초`
+}
+
+let last = null
+async function load() {
+  document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.days) === days)))
+  $('status').hidden = !!last
+  try {
+    // 주소창에 아이디:비밀번호가 붙어 열려도 동작하도록 origin 기준 주소 사용
+    const res = await fetch(`${location.origin}/api/stats?days=${days}`, { cache: 'no-store', credentials: 'same-origin' })
+    if (!res.ok) throw new Error(res.status)
+    render((last = await res.json()))
+  } catch (e) {
+    $('status').hidden = false
+    $('status').textContent = `데이터를 불러오지 못했어요 (${e.message})`
+  }
+}
+
+function render(d) {
+  $('status').hidden = true
+  $('main').hidden = false
+  $('range').textContent = `${d.from} ~ ${d.to} · 최근 ${d.days}일 (한국 시간)`
+  const sessions = d.summary.sessions || 0
+  $('k-visitors').textContent = fmt(d.summary.visitors)
+  $('k-sessions').textContent = fmt(sessions)
+  $('k-time').textContent = mmss(d.time.avg)
+  $('k-time-foot').textContent = d.time.n ? `1분 이상 머문 방문 ${pct(d.time.over1m, d.time.n)}%` : '아직 데이터가 없어요'
+  const reached = Object.fromEntries(d.funnel.map((f) => [f.name, f.n]))
+  $('k-end').textContent = sessions ? `${pct(reached.end || 0, sessions)}%` : '-'
+
+  dailyChart($('daily'), fillDays(d.from, d.to, d.daily))
+
+  // 장별 도달률: 순서대로, 앞 장 대비 이탈도 함께
+  const funnelEl = $('funnel')
+  if (!sessions) funnelEl.innerHTML = '<div class="empty">아직 데이터가 없어요</div>'
+  else funnelEl.innerHTML = CHAPTERS.map(([id, label], i) => {
+    const n = id === 'hero' ? Math.max(reached.hero || 0, sessions) : reached[id] || 0
+    const prev = i ? (CHAPTERS[i - 1][0] === 'hero' ? Math.max(reached.hero || 0, sessions) : reached[CHAPTERS[i - 1][0]] || 0) : 0
+    const drop = i && prev ? pct(prev - n, prev) : null
+    return `<div class="bar" title="${label}: ${fmt(n)}회 (${pct(n, sessions)}%)">
+        <span class="name">${i + 1}. ${label}</span>
+        <span class="track"><span class="fill" style="width:${pct(n, sessions)}%"></span></span>
+        <span class="num">${pct(n, sessions)}%<small>${fmt(n)}</small></span>
+      </div>${drop ? `<div class="drop">앞 장에서 ${drop}% 이탈</div>` : ''}`
+  }).join('')
+
+  bars($('referrers'), d.referrers, sessions, (n) => n || '알 수 없음')
+
+  // 캐릭터: 상세 열람 순, 별자리는 숫자로
+  const chars = Object.keys(NAMES).map((id) => {
+    const r = d.characters.find((c) => c.name === id) || {}
+    return { id, opens: r.opens || 0, stars: r.stars || 0 }
+  }).sort((a, b) => b.opens - a.opens || b.stars - a.stars)
+  const maxOpen = Math.max(1, ...chars.map((c) => c.opens))
+  $('characters').innerHTML = chars.map((c) => `
+    <div class="char" title="${NAMES[c.id]}: 상세 ${fmt(c.opens)}회 · 별자리 ${fmt(c.stars)}회">
+      <img src="/characters/${c.id}.png" alt="" loading="lazy" />
+      <span class="name">${NAMES[c.id]}</span>
+      <span class="track"><span class="fill" style="width:${(c.opens / maxOpen) * 100}%"></span></span>
+      <span class="num">${fmt(c.opens)}<em>✦ ${fmt(c.stars)}</em></span>
+    </div>`).join('')
+
+  bars($('devices'), d.devices, sessions, (n) => DEVICES[n] || n)
+  bars($('countries'), d.countries, sessions, (n) => (n === '??' ? '알 수 없음' : `${flag(n)} ${region?.of(n) ?? n}`))
+  const langTotal = d.langs.reduce((s, x) => s + x.n, 0)
+  bars($('langs'), d.langs, langTotal, (n) => LANGS[n] || n)
+  bars($('hosts'), d.hosts, sessions, (n) => HOSTS[n] || n)
+  const linkTotal = d.links.reduce((s, x) => s + x.n, 0)
+  bars($('links'), d.links, linkTotal)
+}
+
+document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+  days = Number(b.dataset.days)
+  try { localStorage.setItem('stats-days', String(days)) } catch {}
+  load()
+}))
+$('reload').addEventListener('click', load)
+$('toggle-table').addEventListener('click', (e) => {
+  const t = $('daily-table'), c = $('daily')
+  const showTable = t.hidden
+  t.hidden = !showTable; c.hidden = showTable
+  e.target.textContent = showTable ? '그래프로 보기' : '표로 보기'
+})
+addEventListener('resize', () => last && dailyChart($('daily'), fillDays(last.from, last.to, last.daily)))
+load()
+</script>
+</body>
+</html>
