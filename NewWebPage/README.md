@@ -22,7 +22,7 @@ npm run build    # dist/ = 정식 빌드, dist/test/ = 테스트 빌드
 
 - 기능 스위치: `src/channel.ts` 의 `FEATURES`
 - **정식 승격** = 해당 스위치를 `true` 로 바꾼 뒤 배포 (예: 챗봇 → `chatbot: true`)
-- 지금 테스트 빌드에만 있는 기능: 챗봇(코코비 도우미)
+- 지금 테스트 빌드에만 있는 기능: 없음 (챗봇은 2026-10-13 정식 승격)
 
 ## 배포
 
@@ -52,7 +52,7 @@ npm run secrets   # 값이 채워진 항목만 Cloudflare kg-deploy1 비밀 설�
 
 로컬 시험(`npx wrangler dev`)은 `.dev.vars` 의 값을 씁니다 (`.dev.vars` 도 git 에 안 올라감).
 
-## 챗봇 (코코비 도우미) — 테스트 빌드
+## 챗봇 (코코비 도우미) — 정식·테스트 빌드
 
 - 화면: `src/components/ChatWidget.tsx` (우측 하단 버튼, `/api/chat` 호출)
 - 서버: `worker/chat.ts` — 답하는 순서

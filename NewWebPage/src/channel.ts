@@ -10,8 +10,8 @@
 export const CHANNEL: 'prod' | 'test' = import.meta.env.MODE === 'test' ? 'test' : 'prod'
 
 export const FEATURES = {
-  /** 우측 하단 챗봇 (코코비 도우미) — 정식 승격 시 true */
-  chatbot: CHANNEL === 'test',
+  /** 우측 하단 챗봇 (코코비 도우미) — 2026-10-13 정식 승격 */
+  chatbot: true,
   /** 방문 분석 이벤트 전송 — 테스트 빌드 방문은 통계에 섞지 않음 */
   analytics: CHANNEL === 'prod',
 }
